@@ -1,0 +1,25 @@
+# Node.js
+node_modules/
+dist/
+build/
+*.log
+.env*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+htmlcov/
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+.gemini/
+.specify/

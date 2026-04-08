@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+httpx
+fpdf2
+markdown2
+python-dotenv
+pytest
+ollama
+pypdf
