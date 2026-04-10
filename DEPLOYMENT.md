@@ -82,6 +82,11 @@ cd uteach
    ```bash
    npm install
    ```
+3. (Optional) Custom API URL:
+   By default, the frontend automatically detects the backend IP based on your browser's URL (e.g., if you visit `http://192.168.1.50:5173`, it connects to `http://192.168.1.50:8000`). To override this, create a `.env` file:
+   ```env
+   VITE_API_URL=http://<custom-backend-ip>:8000/api/v1
+   ```
 
 ---
 
@@ -99,10 +104,10 @@ uvicorn src.main:app --host 0.0.0.0 --port 8000
 ### Terminal 2: Frontend (Vite)
 ```bash
 cd frontend
-npm run dev -- --host 0.0.0.0
+npm run dev -- --host
 ```
 
-*Note: The `--host 0.0.0.0` flag ensures the application is accessible from outside the VM via its IP address.*
+*Note: The `--host` flag ensures the application is accessible from outside the VM via its IP address. The frontend will automatically attempt to connect to the backend on the same host at port 8000.*
 
 ---
 
@@ -117,6 +122,7 @@ npm run dev -- --host 0.0.0.0
 
 ## Troubleshooting
 
-- **DigestAuth Failures**: Ensure the `OLLAMA_URL` in `.env` does not have a trailing slash unless required by the specific client version.
+- **Ollama Connection**: Ensure `OLLAMA_URL` in `.env` is correct. If left empty, it defaults to `http://localhost:11434`. 
+- **DigestAuth**: The application now automatically handles credentials; if `OLLAMA_USER` or `OLLAMA_PASS` are missing, it will attempt a connection without authentication (useful for local Ollama instances).
 - **PDF Generation Errors**: Usually caused by missing OS libraries listed in Section 1. Ensure `libpango` and `libcairo` are correctly installed.
 - **Browser Mic Access**: Browser security requires HTTPS for microphone access. If accessing via IP, you may need to use the "Upload File" option instead of "Record Audio".

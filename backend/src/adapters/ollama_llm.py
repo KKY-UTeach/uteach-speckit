@@ -13,14 +13,12 @@ class OllamaLLMAdapter(LLMProvider):
         self.user = os.getenv("OLLAMA_USER")
         self.password = os.getenv("OLLAMA_PASS")
         
-        # Initialize the AsyncClient with DigestAuth as per user example
-        # Note: The official ollama library might require passing the auth 
-        # to the underlying httpx client if not supported directly.
-        # Based on the user provided example:
-        self.client = ollama.AsyncClient(
-            host=self.url,
-            auth=httpx.DigestAuth(self.user, self.password)
-        )
+        # Initialize the AsyncClient with DigestAuth if credentials are provided
+        kwargs = {"host": self.url}
+        if self.user and self.password:
+            kwargs["auth"] = httpx.DigestAuth(self.user, self.password)
+        
+        self.client = ollama.AsyncClient(**kwargs)
 
     async def generate_response(
         self, 

@@ -8,7 +8,7 @@ interface PDFUploaderProps {
   onRemove: (id: string) => void;
 }
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api/v1`;
 
 const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -49,9 +49,9 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
       const data = await response.json();
       const newDoc: UploadedDocument = {
         // Simple crypto.randomUUID() check (falls back if needed)
-        id: typeof crypto.randomUUID === 'function' 
-            ? crypto.randomUUID() 
-            : Math.random().toString(36).substring(2, 15),
+        id: typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2, 15),
         name: data.name,
         size: data.size,
         extractedText: data.content,
@@ -59,9 +59,10 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
       };
 
       onUpload(newDoc);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('PDF extraction failed:', err);
-      setError(err.message || "Nepodařilo se zpracovat dokument.");
+      const errorMessage = err instanceof Error ? err.message : "Nepodařilo se zpracovat dokument.";
+      setError(errorMessage);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -82,8 +83,8 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
 
       <div className="flex flex-col gap-3">
         {documents.map((doc) => (
-          <div 
-            key={doc.id} 
+          <div
+            key={doc.id}
             className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm animate-in fade-in zoom-in-95 duration-200 group hover:border-indigo-100 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -95,7 +96,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{(doc.size / 1024).toFixed(1)} KB</span>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => onRemove(doc.id)}
               className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
               title="Smazat dokument"
@@ -114,12 +115,12 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
               <Upload size={24} />
             </div>
             <span className="font-black text-sm tracking-tight uppercase tracking-wider">Přidat PDF dokument</span>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              accept="application/pdf" 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="application/pdf"
+              className="hidden"
             />
           </button>
         )}
