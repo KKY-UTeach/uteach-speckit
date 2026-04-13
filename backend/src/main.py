@@ -21,9 +21,11 @@ app.include_router(llm.router, prefix="/api/v1/llm", tags=["LLM"])
 app.include_router(export.router, prefix="/api/v1/export", tags=["Export"])
 app.include_router(pdf.router, prefix="/api/v1/pdf", tags=["PDF"])
 
+
 @app.get("/")
 async def root():
     return {"message": "Uteach Audio Summary API is running"}
+
 
 if __name__ == "__main__":
     port = 8001
@@ -34,5 +36,5 @@ if __name__ == "__main__":
                 port = int(sys.argv[port_index])
         except (ValueError, IndexError):
             pass
-    
+
     uvicorn.run("src.main:app", host="0.0.0.0", port=port, reload=True)
