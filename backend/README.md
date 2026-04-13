@@ -17,7 +17,7 @@ Modular FastAPI backend for transcribing and summarizing lectures using AI.
 ## Running
 `uvicorn src.main:app --reload`
 (venv) PS C:\Users\marti\OneDrive\Plocha\uteach\uteach\backend> python
- -m src.main --port 8000
+ -m src.main --port 8001
 
 ## Testing
 `pytest`

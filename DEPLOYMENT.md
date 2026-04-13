@@ -83,9 +83,16 @@ cd uteach
    npm install
    ```
 3. (Optional) Custom API URL:
-   By default, the frontend automatically detects the backend IP based on your browser's URL (e.g., if you visit `http://192.168.1.50:5173`, it connects to `http://192.168.1.50:8000`). To override this, create a `.env` file:
+   By default, the frontend automatically detects the backend IP based on your browser's URL (e.g., if you visit `http://192.168.1.50:5173`, it connects to `http://192.168.1.50:8001`). 
+
+   To override just the port, create a `.env` file in the `frontend` directory:
    ```env
-   VITE_API_URL=http://<custom-backend-ip>:8000/api/v1
+   VITE_BACKEND_PORT=8001
+   ```
+
+   To override the entire URL:
+   ```env
+   VITE_API_URL=http://<custom-backend-ip>:8001/api/v1
    ```
 
 ---
@@ -98,7 +105,7 @@ To run the application, you will need two terminal sessions (or use `screen`/`tm
 ```bash
 cd backend
 source venv/bin/activate
-uvicorn src.main:app --host 0.0.0.0 --port 8000
+uvicorn src.main:app --host 0.0.0.0 --port 8001
 ```
 
 ### Terminal 2: Frontend (Vite)
@@ -107,7 +114,7 @@ cd frontend
 npm run dev -- --host
 ```
 
-*Note: The `--host` flag ensures the application is accessible from outside the VM via its IP address. The frontend will automatically attempt to connect to the backend on the same host at port 8000.*
+*Note: The `--host` flag ensures the application is accessible from outside the VM via its IP address. The frontend will automatically attempt to connect to the backend on the same host at port 8001.*
 
 ---
 

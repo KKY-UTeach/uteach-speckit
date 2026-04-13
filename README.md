@@ -79,7 +79,7 @@ You will need two terminal sessions running simultaneously.
 ```bash
 cd backend
 # Ensure venv is active
-python -m src.main --port 8000
+python -m src.main --port 8001
 ```
 
 ### Terminal 2: Frontend

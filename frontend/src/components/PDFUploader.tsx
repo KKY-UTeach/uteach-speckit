@@ -8,7 +8,8 @@ interface PDFUploaderProps {
   onRemove: (id: string) => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api/v1`;
+const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '8001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:${BACKEND_PORT}/api/v1`;
 
 const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove }) => {
   const [isUploading, setIsUploading] = useState(false);

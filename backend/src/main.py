@@ -26,7 +26,7 @@ async def root():
     return {"message": "Uteach Audio Summary API is running"}
 
 if __name__ == "__main__":
-    port = 8000
+    port = 8001
     if "--port" in sys.argv:
         try:
             port_index = sys.argv.index("--port") + 1
