@@ -16,10 +16,10 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(asr.router, prefix="/api/v1/asr", tags=["ASR"])
-app.include_router(llm.router, prefix="/api/v1/llm", tags=["LLM"])
-app.include_router(export.router, prefix="/api/v1/export", tags=["Export"])
-app.include_router(pdf.router, prefix="/api/v1/pdf", tags=["PDF"])
+app.include_router(asr.router, prefix="/v1/asr", tags=["ASR"])
+app.include_router(llm.router, prefix="/v1/llm", tags=["LLM"])
+app.include_router(export.router, prefix="/v1/export", tags=["Export"])
+app.include_router(pdf.router, prefix="/v1/pdf", tags=["PDF"])
 
 
 @app.get("/")
