@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  server: {
+    allowedHosts: ['uteach.kky.zcu.cz']
+  },
   test: {
     globals: true,
     environment: 'jsdom',

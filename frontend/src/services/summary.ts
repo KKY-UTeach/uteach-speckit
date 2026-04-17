@@ -1,5 +1,4 @@
-const BACKEND_PORT = import.meta.env.VITE_BACKEND_PORT || '8001';
-const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:${BACKEND_PORT}/api/v1`;
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export interface DocumentContext {
   name: string;
