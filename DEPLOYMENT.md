@@ -1,13 +1,24 @@
-# Deployment Guide: Audio Lecture Summary Application
+# Deployment Guide
 
-This guide provides step-by-step instructions for setting up the application from scratch on a fresh Virtual Machine (Ubuntu/Debian recommended).
+This guide describes production and staging (devel) deployment on a Ubuntu/Debian VM using:
+
+- Apache reverse proxy
+- FastAPI backend
+- Vite React frontend
+- systemd services for persistent runtime
+
+The system runs two environments:
+
+| Environment | URL | Purpose |
+|------------|-----|--------|
+| Production | https://uteach.kky.zcu.cz | Main stable version |
+| Devel | https://uteach.kky.zcu.cz:444 | Development / testing |
+
+---
 
 ## 1. System Prerequisites
 
-The application requires Python 3.12+ for the backend and Node.js 20+ for the frontend. Additionally, some OS-level libraries are required for PDF generation.
-
-### OS-level Dependencies (for WeasyPrint)
-WeasyPrint requires several libraries for rendering. On Ubuntu/Debian, run:
+### OS-level dependencies
 
 ```bash
 sudo apt-get update
@@ -28,8 +39,9 @@ sudo apt-get install -y \
     libgdk-pixbuf2.0-0
 ```
 
-### Node.js Installation
-Install Node.js 20 or newer:
+---
+
+### Node.js (20+)
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -38,98 +50,347 @@ sudo apt-get install -y nodejs
 
 ---
 
-## 2. Project Setup
+## 2. Project Layout
+It should contain 2 clones of repository
 
-Clone or copy the project directory to your VM.
-
-```bash
-cd uteach
+```text
+/srv/
+  uteach-speckit/           → production (main branch)
+  uteach-speckit-devel/     → devel (dev branch)
 ```
-
-### Backend Configuration
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Configure environment variables:
-   Copy the example file and ensure the Ollama KKY credentials are set:
-   ```bash
-   cp .env.example .env
-   ```
-   Your `.env` should look like this:
-   ```env
-   KKY_ASR_URL=
-   OLLAMA_URL=
-   OLLAMA_USER=
-   OLLAMA_PASS=
-   ```
-
-### Frontend Configuration
-1. Navigate to the frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install Node dependencies:
-   ```bash
-   npm install
-   ```
-3. (Optional) Custom API URL:
-   By default, the frontend automatically detects the backend IP based on your browser's URL (e.g., if you visit `http://192.168.1.50:5173`, it connects to `http://192.168.1.50:8001`). 
-
-   To override just the port, create a `.env` file in the `frontend` directory:
-   ```env
-   VITE_BACKEND_PORT=8001
-   ```
-
-   To override the entire URL:
-   ```env
-   VITE_API_URL=http://<custom-backend-ip>:8001/api/v1
-   ```
 
 ---
 
-## 3. Running the Application
+## 3. Backend Setup
 
-To run the application, you will need two terminal sessions (or use `screen`/`tmux`).
+### Production backend
 
-### Terminal 1: Backend (FastAPI)
+```bash
+cd /srv/uteach-speckit/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Runs on:
+
+* 127.0.0.1:8001
+
+---
+
+### Devel backend
+
+```bash
+cd /srv/uteach-speckit-devel/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Runs on:
+
+* 127.0.0.1:8002
+
+---
+
+## 4. Frontend Setup (Vite)
+
+### Production frontend
+
+```bash
+cd /srv/uteach-speckit/frontend
+npm install
+```
+
+Runs on:
+
+* 5173
+
+Start command:
+
+```bash
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+---
+
+### Devel frontend
+
+```bash
+cd /srv/uteach-speckit-devel/frontend
+npm install
+```
+
+Runs on:
+
+* 5174
+
+Start command:
+
+```bash
+npm run dev -- --host 0.0.0.0 --port 5174
+```
+
+
+## 5. systemd Services
+
+All service files are located in:
+
+```text
+/etc/systemd/system/
+```
+
+---
+
+### 5.1 Production Backend Service
+
+File: `uteach_backend.service`
+
+```ini
+[Unit]
+Description=Uteach Backend (FastAPI via Gunicorn + Uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=uteach
+Group=uteach
+WorkingDirectory=/srv/uteach-speckit/backend
+
+ExecStart=/srv/uteach-speckit/backend/.venv/bin/python3 -m src.main --port 8001
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+### 5.2 Production Frontend Service
+
+File: `uteach_frontend.service`
+
+```ini
+[Unit]
+Description=Uteach Frontend (Dev Server)
+After=network.target
+
+[Service]
+Type=simple
+User=uteach
+Group=uteach
+WorkingDirectory=/srv/uteach-speckit/frontend
+
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
+
+Restart=on-failure
+RestartSec=5
+
+Environment=NODE_ENV=development
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+### 5.3 Devel Backend Service
+
+File: `uteach_devel_backend.service`
+
+```ini
+[Unit]
+Description=DEVEL Uteach Backend (FastAPI via Gunicorn + Uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=uteach
+Group=uteach
+WorkingDirectory=/srv/uteach-speckit-devel/backend
+
+ExecStart=/srv/uteach-speckit-devel/backend/.venv/bin/python3 -m src.main --port 8002
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+### 5.4 Devel Frontend Service
+
+File: `uteach_devel_frontend.service`
+
+```ini
+[Unit]
+Description=DEVEL Uteach Frontend (Dev Server)
+After=network.target
+
+[Service]
+Type=simple
+User=uteach
+Group=uteach
+WorkingDirectory=/srv/uteach-speckit-devel/frontend
+
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0 --port 5174
+
+Restart=on-failure
+RestartSec=5
+
+Environment=NODE_ENV=development
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+### systemd commands
+
+Start services:
+
+```bash
+sudo systemctl start uteach_backend.service
+sudo systemctl start uteach_frontend.service
+sudo systemctl start uteach_devel_backend.service
+sudo systemctl start uteach_devel_frontend.service
+```
+
+Enable on boot:
+
+```bash
+sudo systemctl enable uteach_backend.service
+sudo systemctl enable uteach_frontend.service
+sudo systemctl enable uteach_devel_backend.service
+sudo systemctl enable uteach_devel_frontend.service
+```
+
+Logs:
+
+```bash
+journalctl -u uteach_backend.service -f
+journalctl -u uteach_frontend.service -f
+journalctl -u uteach_devel_backend.service -f
+journalctl -u uteach_devel_frontend.service -f
+```
+
+---
+
+## 6. Apache Reverse Proxy Configuration
+
+### Production (443)
+
+```apache
+<VirtualHost *:443>
+    ServerName uteach.kky.zcu.cz
+
+    ProxyPreserveHost On
+    ProxyRequests Off
+
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+
+    ProxyPass /api/ http://127.0.0.1:8001/
+    ProxyPassReverse /api/ http://127.0.0.1:8001/
+
+    ProxyPass / http://127.0.0.1:5173/
+    ProxyPassReverse / http://127.0.0.1:5173/
+
+    SSLCertificateFile /etc/letsencrypt/live/uteach.kky.zcu.cz/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/uteach.kky.zcu.cz/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</VirtualHost>
+```
+
+---
+
+### Devel (444)
+
+```apache
+<VirtualHost *:444>
+    ServerName uteach.kky.zcu.cz
+
+    ProxyPreserveHost On
+    ProxyRequests Off
+
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "444"
+
+    ProxyPass /api/ http://127.0.0.1:8002/
+    ProxyPassReverse /api/ http://127.0.0.1:8002/
+
+    ProxyPass / http://127.0.0.1:5174/
+    ProxyPassReverse / http://127.0.0.1:5174/
+
+    SSLCertificateFile /etc/letsencrypt/live/uteach.kky.zcu.cz/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/uteach.kky.zcu.cz/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+</VirtualHost>
+```
+
+---
+
+## 7. Running the Application
+
+### Manual execution
+
+#### Production
+
 ```bash
 cd backend
-source venv/bin/activate
-uvicorn src.main:app --host 0.0.0.0 --port 8001
-```
+source .venv/bin/activate
+uvicorn src.main:app --host 127.0.0.1 --port 8001
 
-### Terminal 2: Frontend (Vite)
-```bash
 cd frontend
-npm run dev -- --host
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
-
-*Note: The `--host` flag ensures the application is accessible from outside the VM via its IP address. The frontend will automatically attempt to connect to the backend on the same host at port 8001.*
 
 ---
 
-## 4. Verification & Usage
+#### Devel
 
-1. Open your browser and go to `http://<VM_IP_ADDRESS>:5173`.
-2. **Step 1 (Capture)**: Record a short clip or upload an audio file.
-3. **Step 2 (Transcribe)**: Click "Transcribe Lecture". The status should update to "Nahrávání audia..." and then "Přepisování přednášky...".
-4. **Step 3 (Edit)**: Review the transcript, edit if necessary, and click "Confirm & Summarize".
-5. **Step 4 (Summarize)**: Select your desired format and click "Vygenerovat AI Souhrn".
-6. **Step 5 (Export)**: Download the final PDF summary.
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn src.main:app --host 127.0.0.1 --port 8002
 
-## Troubleshooting
+cd frontend
+npm run dev -- --host 0.0.0.0 --port 5174
+```
 
-- **Ollama Connection**: Ensure `OLLAMA_URL` in `.env` is correct. If left empty, it defaults to `http://localhost:11434`. 
-- **DigestAuth**: The application now automatically handles credentials; if `OLLAMA_USER` or `OLLAMA_PASS` are missing, it will attempt a connection without authentication (useful for local Ollama instances).
-- **PDF Generation Errors**: Usually caused by missing OS libraries listed in Section 1. Ensure `libpango` and `libcairo` are correctly installed.
-- **Browser Mic Access**: Browser security requires HTTPS for microphone access. If accessing via IP, you may need to use the "Upload File" option instead of "Record Audio".
+---
+
+## 8. Verification
+
+Production:
+[https://uteach.kky.zcu.cz](https://uteach.kky.zcu.cz)
+
+Devel:
+[https://uteach.kky.zcu.cz:444](https://uteach.kky.zcu.cz:444)
+
+---
+
+## 9. Notes
+
+* Production runs on HTTPS :443
+* Devel runs on HTTPS :444
+* systemd manages persistent services
+* Vite dev server is used for frontend runtime
+
