@@ -1,0 +1,138 @@
+name: CI-CD Deploy
+
+on:
+  push:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff
+        run: ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Test placeholder
+        run: echo "Test placeholder"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to VM
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          BRANCH: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} \
+          "BRANCH='${BRANCH}' COMMIT_SHA='${COMMIT_SHA}' ACTOR='${ACTOR}' RUN_URL='${RUN_URL}' bash -s" << 'EOF'
+
+          set -e
+
+          TIMESTAMP=$(date -Is)
+
+          REPO_MAIN="/srv/uteach-speckit"
+          REPO_DEVEL="/srv/uteach-speckit-devel"
+
+          if [ "$BRANCH" = "main" ]; then
+            REPO="$REPO_MAIN"
+            MODE="production"
+            BACKEND_SERVICE="uteach_backend.service"
+            FRONTEND_SERVICE="uteach_frontend.service"
+          else
+            REPO="$REPO_DEVEL"
+            MODE="development"
+            BACKEND_SERVICE="uteach_devel_backend.service"
+            FRONTEND_SERVICE="uteach_devel_frontend.service"
+          fi
+
+          cd "$REPO"
+
+          PREVIOUS_COMMIT=$(git rev-parse HEAD || echo "unknown")
+
+          # Update code
+          git fetch origin
+          git checkout "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          git clean -fd
+
+          DEPLOY_STATUS="SUCCESS"
+
+          rollback() {
+            if [ "$MODE" = "production" ]; then
+              echo "ROLLBACK: restoring previous commit"
+
+              git reset --hard "$PREVIOUS_COMMIT" || true
+
+              sudo systemctl restart "$BACKEND_SERVICE" || true
+              sudo systemctl restart "$FRONTEND_SERVICE" || true
+
+              DEPLOY_STATUS="ROLLED_BACK"
+            else
+              echo "Development rollback skipped (warning only)"
+              DEPLOY_STATUS="FAILED"
+            fi
+          }
+
+          # Restart services
+          sudo systemctl restart "$BACKEND_SERVICE" || { rollback; exit 1; }
+          sudo systemctl restart "$FRONTEND_SERVICE" || { rollback; exit 1; }
+
+          # Verify services
+          systemctl is-active "$BACKEND_SERVICE" || DEV_WARN_BACKEND=1
+          systemctl is-active "$FRONTEND_SERVICE" || DEV_WARN_FRONTEND=1
+
+          if [ "$MODE" = "production" ]; then
+            if [ "${DEV_WARN_BACKEND:-0}" = "1" ] || [ "${DEV_WARN_FRONTEND:-0}" = "1" ]; then
+              rollback
+            fi
+          else
+            if [ "${DEV_WARN_BACKEND:-0}" = "1" ] || [ "${DEV_WARN_FRONTEND:-0}" = "1" ]; then
+              echo "WARNING: service not fully active in development"
+            fi
+          fi
+
+          # Write deployment note (overwrite)
+          NOTE_FILE="$REPO/deployment_note.txt"
+
+          cat > "$NOTE_FILE" << NOTE
+          Deployment Status: $DEPLOY_STATUS
+          Timestamp: $TIMESTAMP
+          Actor: $ACTOR
+          Branch: $BRANCH
+          Commit SHA: $COMMIT_SHA
+          Previous Commit: $PREVIOUS_COMMIT
+          Workflow Run: $RUN_URL
+          Mode: $MODE
+          NOTE
+
+          EOF
