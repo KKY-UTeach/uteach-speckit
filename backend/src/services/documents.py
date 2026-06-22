@@ -1,5 +1,6 @@
-from pypdf import PdfReader
 import io
+
+from pypdf import PdfReader
 
 
 class DocumentExtractionService:
@@ -24,4 +25,4 @@ class DocumentExtractionService:
             return final_text
         except Exception as e:
             # Re-wrap as ValueError for cleaner API handling
-            raise ValueError(f"Failed to extract text from PDF: {str(e)}")
+            raise ValueError(f"Failed to extract text from PDF: {str(e)}") from e

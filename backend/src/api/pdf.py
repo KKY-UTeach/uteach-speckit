@@ -1,4 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
 from src.services.documents import DocumentExtractionService
 
 router = APIRouter()
@@ -8,7 +11,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.post("/extract")
-async def extract_pdf_text(file: UploadFile = File(...)):
+async def extract_pdf_text(file: Annotated[UploadFile, File()]):
     """
     Endpoint to extract text from a PDF file.
     Returns the filename, size, and extracted text content.
@@ -26,6 +29,6 @@ async def extract_pdf_text(file: UploadFile = File(...)):
 
         return {"name": file.filename, "size": len(content), "content": text}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") from e

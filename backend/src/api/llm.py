@@ -1,6 +1,8 @@
+from typing import List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+
 from src.adapters.ollama_llm import OllamaLLMAdapter
 
 router = APIRouter()
@@ -28,4 +30,4 @@ async def summarize(request: SummarizeRequest):
         )
         return {"markdown": markdown}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

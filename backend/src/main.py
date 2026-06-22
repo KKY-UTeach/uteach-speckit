@@ -1,8 +1,10 @@
+import sys
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api import asr, llm, export, pdf
-import uvicorn
-import sys
+
+from src.api import asr, export, llm, pdf
 
 app = FastAPI(title="Uteach Audio Summary API", version="1.0.0")
 

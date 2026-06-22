@@ -4,4 +4,4 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "B", "C4"]
-ignore = []
+ignore = ["E501"] # ignoire line length

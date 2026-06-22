@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Response
-from pydantic import BaseModel
-from fpdf import FPDF
-from typing import Optional
 import os
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Response
+from fpdf import FPDF
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -94,4 +95,4 @@ async def export_pdf(request: ExportRequest):
         )
     except Exception as e:
         print(f"PDF Export Error: {e}")
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}") from e

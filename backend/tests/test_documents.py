@@ -1,7 +1,9 @@
+
 import pytest
-from src.services.documents import DocumentExtractionService
 from fpdf import FPDF
-import io
+
+from src.services.documents import DocumentExtractionService
+
 
 def create_test_pdf(text: str) -> bytes:
     """Helper to create a simple PDF in memory."""
@@ -16,7 +18,7 @@ def test_extract_text_from_pdf():
     service = DocumentExtractionService()
     expected_text = "Hello Uteach PDF Extraction"
     pdf_content = create_test_pdf(expected_text)
-    
+
     extracted_text = service.extract_text(pdf_content)
     assert expected_text in extracted_text
 
@@ -26,7 +28,7 @@ def test_extract_text_empty_pdf():
     pdf = FPDF()
     pdf.add_page()
     pdf_content = pdf.output()
-    
+
     with pytest.raises(ValueError, match="se nepodařilo extrahovat žádný text"):
         service.extract_text(pdf_content)
 
