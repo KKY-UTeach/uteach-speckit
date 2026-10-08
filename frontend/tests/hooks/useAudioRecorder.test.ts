@@ -117,7 +117,9 @@ describe('useAudioRecorder', () => {
   });
 
   it('shows the timer and pause, resume, and stop controls while recording', async () => {
-    const { unmount } = render(React.createElement(AudioCapture, { onCaptured: vi.fn() }));
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const onCaptured = vi.fn();
+    const { unmount } = render(React.createElement(AudioCapture, { onCaptured }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Nahrávat' }));
     await act(async () => {
@@ -133,6 +135,20 @@ describe('useAudioRecorder', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Zastavit' }));
     expect(screen.getByText('Audio připraveno')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Začátek (sekundy)')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Oříznout začátek nebo konec' }));
+    const originalAudio = screen.getByLabelText('Přehrát původní audio');
+    Object.defineProperty(originalAudio, 'duration', { configurable: true, value: 10 });
+    fireEvent.loadedMetadata(originalAudio);
+    expect(screen.getByLabelText('Začátek (sekundy)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Spustit přepis' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skrýt ořez audia' }));
+    expect(screen.queryByLabelText('Začátek (sekundy)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Spustit přepis' }));
+    expect(onCaptured).toHaveBeenCalledOnce();
+    expect(onCaptured.mock.calls[0][0]).toBe(onCaptured.mock.calls[0][1]);
     unmount();
   });
 });

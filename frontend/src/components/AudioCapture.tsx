@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Upload, Trash2, Download, ArrowRight, Play, Pause } from 'lucide-react';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import AudioTrimmer from './AudioTrimmer';
 
 interface AudioCaptureProps {
-  onCaptured: (blob: Blob) => void;
+  onCaptured: (blob: Blob, originalAudio: Blob) => void;
   initialAudio?: Blob | null;
 }
 
@@ -21,6 +22,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
     setAudioFile,
   } = useAudioRecorder();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showTrimmer, setShowTrimmer] = useState(false);
   const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
   const elapsedTime = [
     Math.floor(totalSeconds / 3600),
@@ -136,7 +138,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
           </div>
           
           <div className="w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-            <audio controls src={recording.url} className="w-full h-10" />
+            <audio controls src={recording.url} className="w-full h-10" aria-label="Přehrát nahrané audio" />
           </div>
           
           <div className="grid grid-cols-2 gap-4 w-full pt-2">
@@ -157,12 +159,28 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
           </div>
 
           <button
-            onClick={() => onCaptured(recording.blob)}
-            className="w-full flex items-center justify-center space-x-3 py-5 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all font-black text-xl active:scale-[0.98]"
+            type="button"
+            aria-expanded={showTrimmer}
+            onClick={() => setShowTrimmer(value => !value)}
+            className="w-full rounded-xl border border-indigo-200 bg-white px-5 py-3 font-bold text-indigo-600 transition-colors hover:bg-indigo-50"
           >
-            <span>Spustit přepis</span>
-            <ArrowRight size={24} />
+            {showTrimmer ? 'Skrýt ořez audia' : 'Oříznout začátek nebo konec'}
           </button>
+
+          {showTrimmer ? (
+            <AudioTrimmer
+              audio={recording.blob}
+              onTranscribe={trimmedAudio => onCaptured(trimmedAudio, recording.blob)}
+            />
+          ) : (
+            <button
+              onClick={() => onCaptured(recording.blob, recording.blob)}
+              className="w-full flex items-center justify-center space-x-3 py-5 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all font-black text-xl active:scale-[0.98]"
+            >
+              <span>Spustit přepis</span>
+              <ArrowRight size={24} />
+            </button>
+          )}
         </div>
       )}
     </div>
