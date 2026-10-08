@@ -1,17 +1,13 @@
 import React from 'react';
+import { SupportedLanguage, translations } from '../i18n';
 
 interface ProgressBarProps {
   currentStep: number;
+  language: SupportedLanguage;
 }
 
-const steps = [
-  { id: 1, name: 'Capture' },
-  { id: 2, name: 'Transcribe' },
-  { id: 3, name: 'Summarize' },
-  { id: 4, name: 'Export' },
-];
-
-const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, language }) => {
+  const steps = translations[language].progressSteps;
   return (
     <div className="w-full py-6 px-4 md:px-12">
       <div className="flex justify-between relative">
@@ -21,19 +17,19 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
           style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
         ></div>
         
-        {steps.map((step) => (
-          <div key={step.id} className="flex flex-col items-center">
+        {steps.map((step, index) => (
+          <div key={step} className="flex flex-col items-center">
             <div 
               className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black border-4 transition-all duration-300
-                ${step.id <= currentStep 
+                ${index + 1 <= currentStep
                   ? 'bg-blue-600 text-white border-blue-100 shadow-md' 
                   : 'bg-white text-gray-300 border-gray-50'}`}
             >
-              {step.id}
+              {index + 1}
             </div>
             <span className={`mt-3 text-[10px] font-bold uppercase tracking-widest transition-colors duration-300
-              ${step.id <= currentStep ? 'text-blue-600' : 'text-gray-300'}`}>
-              {step.name}
+              ${index + 1 <= currentStep ? 'text-blue-600' : 'text-gray-300'}`}>
+              {step}
             </span>
           </div>
         ))}

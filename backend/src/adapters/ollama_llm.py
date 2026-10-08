@@ -9,6 +9,31 @@ from src.adapters.base import LLMProvider
 
 load_dotenv()
 
+PROMPT_TEMPLATES = {
+    "cs": {
+        "response_instruction": "Odpovídej v češtině.",
+        "summary": "Shrňte následující přepis přednášky do jasných odstavců. Zvýrazněte klíčové koncepty.",
+        "keyword-table": "Extrahujte hlavní klíčová slova a jejich definice z této přednášky do markdown tabulky.",
+        "mock_heading": "### AI Shrnutí (MOCK)",
+        "mock_intro": "Toto je simulovaná odpověď z modelu",
+        "mock_point_1": "Přednáška rozebírá důležitost čisté architektury.",
+        "mock_point_2": "Modulární design umožňuje snadnou výměnu komponent.",
+        "point_label_1": "Bod 1",
+        "point_label_2": "Bod 2",
+    },
+    "en": {
+        "response_instruction": "Respond in English.",
+        "summary": "Summarize the lecture transcript into clear paragraphs and highlight the key concepts.",
+        "keyword-table": "Extract the main keywords and their definitions from this lecture into a markdown table.",
+        "mock_heading": "### AI Summary (MOCK)",
+        "mock_intro": "This is a simulated response from model",
+        "mock_point_1": "The lecture explores the importance of clean architecture.",
+        "mock_point_2": "Modular design makes it easier to swap components.",
+        "point_label_1": "Point 1",
+        "point_label_2": "Point 2",
+    },
+}
+
 
 class OllamaLLMAdapter(LLMProvider):
     def __init__(self):
@@ -29,27 +54,22 @@ class OllamaLLMAdapter(LLMProvider):
         supporting_docs: Optional[List[Any]] = None,
         format_type: str = "summary",
         config: Optional[Dict[str, Any]] = None,
+        language: str = "cs",
     ) -> str:
         """
-        Generates a summary or keyword table in Czech.
+        Generates a summary or keyword table in the requested language.
         Uses gpt-oss:20b or gemma3:12b.
         """
-        # Using gpt-oss:20b for summarization as it's generally better for longer texts
+        language_key = (language or "cs").lower()
+        locale = PROMPT_TEMPLATES.get(language_key, PROMPT_TEMPLATES["cs"])
+
         model = "gpt-oss:20b"
+        system_prompt = locale.get(format_type, locale["summary"])
 
-        prompt_templates = {
-            "summary": "Shrňte následující přepis přednášky do jasných odstavců. Zvýrazněte klíčové koncepty.",
-            "keyword-table": "Extrahujte hlavní klíčová slova a jejich definice z této přednášky do markdown tabulky.",
-        }
-
-        system_prompt = prompt_templates.get(format_type, prompt_templates["summary"])
-
-        # Build document context if provided
         doc_context = ""
         if supporting_docs:
             doc_context = "\n\nContext from Supporting Documents:\n---\n"
             for doc in supporting_docs:
-                # Robustly handle both Pydantic objects and dicts
                 if hasattr(doc, "name"):
                     name = doc.name
                 elif isinstance(doc, dict):
@@ -69,7 +89,7 @@ class OllamaLLMAdapter(LLMProvider):
         messages = [
             {
                 "role": "system",
-                "content": "Odpovídej v češtině.",
+                "content": locale["response_instruction"],
             },
             {
                 "role": "user",
@@ -84,5 +104,8 @@ class OllamaLLMAdapter(LLMProvider):
             return response["message"]["content"]
         except Exception as e:
             print(f"Ollama Error: {e}")
-            # Fallback mock for development if server is unreachable
-            return f"### AI Shrnutí (MOCK)\n\nToto je simulovaná odpověď z modelu {model}.\n\n- **Bod 1**: Přednáška rozebírá důležitost čisté architektury.\n- **Bod 2**: Modulární design umožňuje snadnou výměnu komponent."
+            return (
+                f"{locale['mock_heading']}\n\n{locale['mock_intro']} {model}.\n\n"
+                f"- **{locale['point_label_1']}**: {locale['mock_point_1']}\n"
+                f"- **{locale['point_label_2']}**: {locale['mock_point_2']}"
+            )

@@ -13,6 +13,7 @@ def test_summarize_with_docs_integration():
     payload = {
         "transcript": "Toto je testovací přepis přednášky o programování.",
         "format": "summary",
+        "language": "en",
         "supporting_docs": [
             {"name": "test_slides.pdf", "content": "Klíčové téma: SOLID principy a čistý kód."}
         ],
