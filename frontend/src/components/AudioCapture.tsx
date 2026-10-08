@@ -1,12 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Mic, Square, Upload, Trash2, Download, ArrowRight, Play, Pause } from 'lucide-react';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
 interface AudioCaptureProps {
   onCaptured: (blob: Blob) => void;
+  initialAudio?: Blob | null;
 }
 
-const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured }) => {
+const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = null }) => {
   const {
     isRecording,
     isPaused,
@@ -26,6 +27,10 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured }) => {
     Math.floor((totalSeconds % 3600) / 60),
     totalSeconds % 60,
   ].map((part) => String(part).padStart(2, '0')).join(':');
+
+  useEffect(() => {
+    if (initialAudio) setAudioFile(initialAudio);
+  }, [initialAudio, setAudioFile]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

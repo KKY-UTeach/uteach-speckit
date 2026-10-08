@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import ProgressBar from './components/ProgressBar';
 import AudioCapture from './components/AudioCapture';
+import AudioTrimmer from './components/AudioTrimmer';
 import TranscriptEditor from './components/TranscriptEditor';
 import SummaryView from './components/SummaryView';
 import PDFUploader from './components/PDFUploader';
 import { transcribeAudio } from './services/asr';
 import { summarizeTranscript, exportToPdf } from './services/summary';
 import { usePersistence, SessionData, UploadedDocument } from './hooks/usePersistence';
-import { AlertCircle, Loader2, Sparkles, History, X, Cpu, FileUp, ArrowRight } from 'lucide-react';
+import { AlertCircle, Sparkles, History, X, Cpu, ArrowRight } from 'lucide-react';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [audioToTrim, setAudioToTrim] = useState<Blob | null>(null);
   const [transcript, setTranscript] = useState('');
   const [summary, setSummary] = useState('');
   const [format, setFormat] = useState('summary');
@@ -39,6 +41,7 @@ function App() {
       saveSession({
         transcript,
         currentStep,
+        workflowVersion: 2,
         format,
         supportingDocs,
         lastUpdated: Date.now()
@@ -48,7 +51,7 @@ function App() {
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (currentStep > 1 && currentStep < 4) {
+      if (currentStep > 1 && currentStep < 5) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -60,14 +63,24 @@ function App() {
   const restoreSession = () => {
     if (pendingSession) {
       setTranscript(pendingSession.transcript);
-      setCurrentStep(pendingSession.currentStep);
+      const restoredStep = pendingSession.workflowVersion === 2
+        ? pendingSession.currentStep
+        : pendingSession.currentStep === 1
+          ? 1
+          : Math.min(pendingSession.currentStep + 1, 5);
+      setCurrentStep(restoredStep === 2 ? 1 : restoredStep);
       setFormat(pendingSession.format);
       setSupportingDocs(pendingSession.supportingDocs || []);
     }
     setShowRestore(false);
   };
 
-  const handleAudioCaptured = async (blob: Blob) => {
+  const handleAudioCaptured = (blob: Blob) => {
+    setAudioToTrim(blob);
+    setCurrentStep(2);
+  };
+
+  const handleTranscribeAudio = async (blob: Blob) => {
     setIsLoading(true);
     setError(null);
     setStatusText('Nahrávání audia...');
@@ -75,7 +88,7 @@ function App() {
       setTimeout(() => setStatusText('Přepisování přednášky...'), 1500);
       const response = await transcribeAudio(blob);
       setTranscript(response.text);
-      setCurrentStep(2);
+      setCurrentStep(3);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transcription failed');
     } finally {
@@ -86,7 +99,7 @@ function App() {
 
   const handleTranscriptConfirmed = (text: string) => {
     setTranscript(text);
-    setCurrentStep(3);
+    setCurrentStep(4);
   };
 
   const handleGenerateSummary = async () => {
@@ -97,7 +110,7 @@ function App() {
       const docs = supportingDocs.map(d => ({ name: d.name, content: d.extractedText }));
       const response = await summarizeTranscript(transcript, format, docs);
       setSummary(response.markdown);
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (err) {
       setError('Generování souhrnu selhalo.');
     } finally {
@@ -130,6 +143,7 @@ function App() {
   const reset = async () => {
     setTranscript('');
     setSummary('');
+    setAudioToTrim(null);
     setSupportingDocs([]);
     setCurrentStep(1);
     setError(null);
@@ -206,7 +220,7 @@ function App() {
             <div className="w-full flex justify-center">
               {currentStep === 1 && (
                 <div className="flex flex-col items-center space-y-12 w-full max-w-2xl">
-                  <AudioCapture onCaptured={handleAudioCaptured} />
+                  <AudioCapture initialAudio={audioToTrim} onCaptured={handleAudioCaptured} />
                   <div className="w-full border-t border-slate-100 pt-10">
                     <PDFUploader 
                       documents={supportingDocs} 
@@ -216,7 +230,7 @@ function App() {
                   </div>
                   {supportingDocs.length > 0 && (
                     <button
-                      onClick={() => setCurrentStep(3)}
+                      onClick={() => setCurrentStep(4)}
                       className="flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest hover:bg-indigo-50 px-6 py-3 rounded-xl transition-all border border-indigo-100 animate-in slide-in-from-bottom-2 duration-300 shadow-sm"
                     >
                       <span>Pokračovat pouze s PDF</span>
@@ -225,11 +239,14 @@ function App() {
                   )}
                 </div>
               )}
-              {currentStep === 2 && <TranscriptEditor initialText={transcript} onConfirm={handleTranscriptConfirmed} />}
-              {currentStep === 3 && (
+              {currentStep === 2 && audioToTrim && (
+                <AudioTrimmer audio={audioToTrim} onTranscribe={handleTranscribeAudio} />
+              )}
+              {currentStep === 3 && <TranscriptEditor initialText={transcript} onConfirm={handleTranscriptConfirmed} />}
+              {currentStep === 4 && (
                 <div className="flex flex-col items-center space-y-12 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-500">
                   <div className="text-center space-y-3">
-                    <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">Poslední krok</div>
+                    <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">Nastavení souhrnu</div>
                     <h2 className="text-4xl font-black text-slate-900 tracking-tight">Nastavení výstupu</h2>
                     <p className="text-slate-500 font-medium max-w-md mx-auto">Vyberte styl zpracování, který vám nejvíce vyhovuje pro studium.</p>
                   </div>
@@ -277,7 +294,7 @@ function App() {
                   </button>
                 </div>
               )}
-              {currentStep === 4 && (
+              {currentStep === 5 && (
                 <SummaryView 
                   markdown={summary} 
                   onDownloadPdf={handleDownloadPdf}
@@ -295,13 +312,15 @@ function App() {
               className="text-slate-400 hover:text-indigo-600 font-black tracking-widest uppercase text-[10px] transition-colors flex items-center space-x-2"
             >
               <span className="text-base leading-none">←</span>
-              <span>Zpět na {currentStep === 2 ? 'Nahrávání' : currentStep === 3 ? 'Editor' : 'Nastavení'}</span>
+              <span>
+                Zpět na {currentStep === 2 ? 'Nahrávání' : currentStep === 3 ? 'Ořez audia' : currentStep === 4 ? 'Editor' : 'Nastavení'}
+              </span>
             </button>
           ) : <div />}
           
           <div className="px-4 py-1.5 bg-slate-200/50 rounded-full text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] flex items-center space-x-2">
             <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
-            <span>Krok {currentStep} ze 4 • {Math.round((currentStep/4)*100)}% hotovo</span>
+            <span>Krok {currentStep} z 5 • {Math.round((currentStep/5)*100)}% hotovo</span>
           </div>
         </div>
       </main>

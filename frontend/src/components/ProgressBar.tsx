@@ -6,9 +6,10 @@ interface ProgressBarProps {
 
 const steps = [
   { id: 1, name: 'Capture' },
-  { id: 2, name: 'Transcribe' },
-  { id: 3, name: 'Summarize' },
-  { id: 4, name: 'Export' },
+  { id: 2, name: 'Trim audio' },
+  { id: 3, name: 'Transcribe' },
+  { id: 4, name: 'Summarize' },
+  { id: 5, name: 'Export' },
 ];
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
