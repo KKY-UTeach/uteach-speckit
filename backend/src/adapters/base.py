@@ -17,6 +17,7 @@ class LLMProvider(ABC):
         supporting_docs: Optional[List[str]] = None,
         format_type: str = "summary",
         config: Optional[Dict[str, Any]] = None,
+        language: str = "cs",
     ) -> str:
         """Generate a summary or other structured response from a transcript."""
         pass

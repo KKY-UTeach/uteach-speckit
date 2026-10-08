@@ -18,6 +18,7 @@ class SummarizeRequest(BaseModel):
     transcript: str
     format: Optional[str] = "summary"
     supporting_docs: Optional[List[DocumentContext]] = None
+    language: Optional[str] = "cs"
 
 
 @router.post("/summarize")
@@ -27,6 +28,7 @@ async def summarize(request: SummarizeRequest):
             transcript=request.transcript,
             format_type=request.format,
             supporting_docs=request.supporting_docs,
+            language=request.language,
         )
         return {"markdown": markdown}
     except Exception as e:

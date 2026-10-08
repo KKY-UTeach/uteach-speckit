@@ -2,13 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Upload, Trash2, Download, ArrowRight, Play, Pause } from 'lucide-react';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import AudioTrimmer from './AudioTrimmer';
+import { SupportedLanguage, translations } from '../i18n';
 
 interface AudioCaptureProps {
   onCaptured: (blob: Blob, originalAudio: Blob) => void;
   initialAudio?: Blob | null;
+  language: SupportedLanguage;
 }
 
-const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = null }) => {
+const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = null, language }) => {
   const {
     isRecording,
     isPaused,
@@ -23,6 +25,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
   } = useAudioRecorder();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTrimmer, setShowTrimmer] = useState(false);
+  const t = translations[language];
   const totalSeconds = Math.floor(elapsedMilliseconds / 1000);
   const elapsedTime = [
     Math.floor(totalSeconds / 3600),
@@ -38,7 +41,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 50 * 1024 * 1024) {
-        alert("Soubor je příliš velký (max 50MB).");
+        alert(t.audioTooLarge);
         return;
       }
       setAudioFile(file);
@@ -50,16 +53,16 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
     if (!recording) return;
     const a = document.createElement('a');
     a.href = recording.url;
-    a.download = `přednáška_${new Date().getTime()}.webm`;
+    a.download = `lecture_${new Date().getTime()}.webm`;
     a.click();
   };
 
   return (
     <div className="flex flex-col items-center space-y-10 w-full max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-3">
-        <div className="inline-flex px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">Začněte zde</div>
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Vstupní audio</h2>
-        <p className="text-slate-500 font-medium">Nahrajte přednášku v reálném čase nebo nahrajte existující audio soubor.</p>
+        <div className="inline-flex px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">{t.audioStartBadge}</div>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight">{t.audioTitle}</h2>
+        <p className="text-slate-500 font-medium">{t.audioDescription}</p>
       </div>
 
       {!recording ? (
@@ -71,11 +74,11 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
                 <div className="flex items-center space-x-2">
                   <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-amber-500' : 'bg-rose-500 animate-ping'}`}></span>
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    {isPaused ? 'Pozastaveno' : 'Nahrává se'}
+                    {isPaused ? t.recordingPaused : t.recordingInProgress}
                   </span>
                 </div>
                 <output
-                  aria-label="Délka nahrávání"
+                  aria-label={t.recordingInProgress}
                   aria-live="off"
                   className="font-mono text-4xl font-black tracking-wider tabular-nums"
                 >
@@ -87,14 +90,14 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
                     className="flex flex-1 items-center justify-center space-x-2 py-3 rounded-xl bg-white border border-rose-100 hover:bg-rose-100 transition-colors font-bold text-sm"
                   >
                     {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} />}
-                    <span>{isPaused ? 'Pokračovat' : 'Pozastavit'}</span>
+                    <span>{isPaused ? t.resumeRecording : t.pauseRecording}</span>
                   </button>
                   <button
                     onClick={stopRecording}
                     className="flex flex-1 items-center justify-center space-x-2 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-colors font-bold text-sm"
                   >
                     <Square size={16} fill="currentColor" />
-                    <span>Zastavit</span>
+                    <span>{t.stopRecording}</span>
                   </button>
                 </div>
               </>
@@ -106,7 +109,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
                 <div className="p-5 rounded-2xl bg-white shadow-sm group-hover:scale-110 transition-transform duration-300">
                   <Mic size={36} />
                 </div>
-                <span className="font-black text-lg tracking-tight">Nahrávat</span>
+                <span className="font-black text-lg tracking-tight">{t.startRecording}</span>
               </button>
             )}
           </div>
@@ -119,7 +122,7 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
             <div className="p-5 rounded-2xl bg-white shadow-sm group-hover:scale-110 transition-transform duration-300">
               <Upload size={36} />
             </div>
-            <span className="font-black text-lg tracking-tight">Nahrát soubor</span>
+            <span className="font-black text-lg tracking-tight">{t.uploadAudio}</span>
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -134,11 +137,11 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
         <div className="w-full bg-slate-50 border border-slate-200 rounded-[2.5rem] p-8 md:p-10 flex flex-col items-center space-y-8 animate-in zoom-in-95 duration-300">
           <div className="flex items-center space-x-3 text-indigo-600 bg-white px-6 py-2 rounded-full shadow-sm border border-slate-100">
             <Play size={16} fill="currentColor" />
-            <span className="font-black text-xs uppercase tracking-widest">Audio připraveno</span>
+            <span className="font-black text-xs uppercase tracking-widest">{t.audioReady}</span>
           </div>
           
           <div className="w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-            <audio controls src={recording.url} className="w-full h-10" aria-label="Přehrát nahrané audio" />
+            <audio controls src={recording.url} className="w-full h-10" aria-label={t.playRecordedAudio} />
           </div>
           
           <div className="grid grid-cols-2 gap-4 w-full pt-2">
@@ -147,14 +150,14 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
               className="flex items-center justify-center space-x-2 py-4 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all font-bold text-sm shadow-sm"
             >
               <Trash2 size={18} />
-              <span>Smazat</span>
+              <span>{t.deleteAudio}</span>
             </button>
             <button
               onClick={handleDownload}
               className="flex items-center justify-center space-x-2 py-4 rounded-2xl bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50 transition-all font-bold text-sm shadow-sm"
             >
               <Download size={18} />
-              <span>Stáhnout</span>
+              <span>{t.downloadAudio}</span>
             </button>
           </div>
 
@@ -164,20 +167,21 @@ const AudioCapture: React.FC<AudioCaptureProps> = ({ onCaptured, initialAudio = 
             onClick={() => setShowTrimmer(value => !value)}
             className="w-full rounded-xl border border-indigo-200 bg-white px-5 py-3 font-bold text-indigo-600 transition-colors hover:bg-indigo-50"
           >
-            {showTrimmer ? 'Skrýt ořez audia' : 'Oříznout začátek nebo konec'}
+            {showTrimmer ? t.hideAudioTrimmer : t.showAudioTrimmer}
           </button>
 
           {showTrimmer ? (
             <AudioTrimmer
               audio={recording.blob}
               onTranscribe={trimmedAudio => onCaptured(trimmedAudio, recording.blob)}
+              language={language}
             />
           ) : (
             <button
               onClick={() => onCaptured(recording.blob, recording.blob)}
               className="w-full flex items-center justify-center space-x-3 py-5 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all font-black text-xl active:scale-[0.98]"
             >
-              <span>Spustit přepis</span>
+              <span>{t.startTranscription}</span>
               <ArrowRight size={24} />
             </button>
           )}

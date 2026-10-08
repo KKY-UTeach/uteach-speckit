@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Scissors } from 'lucide-react';
 import { trimAudio } from '../services/audioTrimming';
+import { SupportedLanguage, translations } from '../i18n';
 
 interface AudioTrimmerProps {
   audio: Blob;
   onTranscribe: (audio: Blob) => void;
+  language?: SupportedLanguage;
 }
 
 const formatTime = (seconds: number): string => {
@@ -17,7 +19,8 @@ const formatTime = (seconds: number): string => {
     .join(':');
 };
 
-const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
+const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe, language = 'cs' }) => {
+  const t = translations[language];
   const [duration, setDuration] = useState<number | null>(null);
   const [startSeconds, setStartSeconds] = useState(0);
   const [endSeconds, setEndSeconds] = useState(0);
@@ -55,7 +58,7 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
 
   const makeTrimmedAudio = async () => {
     if (duration === null || startSeconds < 0 || endSeconds > duration || endSeconds <= startSeconds) {
-      setError('Zadejte platný začátek a konec výřezu.');
+      setError(t.trimValidationError);
       return null;
     }
     if (startSeconds === 0 && endSeconds === duration) return audio;
@@ -65,7 +68,7 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
     try {
       return await trimAudio(audio, startSeconds, endSeconds);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Audio se nepodařilo oříznout.');
+      setError(err instanceof Error ? err.message : t.trimFailed);
       return null;
     } finally {
       setIsPreparing(false);
@@ -99,22 +102,22 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
   return (
     <div className="flex w-full max-w-2xl flex-col items-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-3">
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Oříznout audio</h2>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight">{t.trimAudioTitle}</h2>
         <p className="text-slate-500 font-medium">
-          Nastavte začátek a konec nahrávky. Přepisovat se bude pouze vybraný úsek.
+          {t.trimAudioDescription}
         </p>
       </div>
 
       <div className="w-full space-y-6 rounded-[2rem] border border-slate-200 bg-slate-50 p-6 md:p-8">
         <div className="w-full rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <audio ref={audioRef} controls className="w-full h-10" aria-label="Přehrát původní audio" />
+          <audio ref={audioRef} controls className="w-full h-10" aria-label={t.playOriginalAudio} />
         </div>
 
         {duration !== null && (
           <>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm font-bold text-slate-700">
-                <span>Začátek (sekundy)</span>
+                <span>{t.trimStart}</span>
                 <input
                   type="number"
                   min={0}
@@ -126,7 +129,7 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
                 />
               </label>
               <label className="space-y-2 text-sm font-bold text-slate-700">
-                <span>Konec (sekundy)</span>
+                <span>{t.trimEnd}</span>
                 <input
                   type="number"
                   min={0}
@@ -139,7 +142,7 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
               </label>
             </div>
             <p className="text-center text-xs font-bold text-slate-400">
-              Délka audia {formatTime(duration)} · výběr {formatTime(Math.max(0, endSeconds - startSeconds))}
+              {t.audioDuration} {formatTime(duration)} · {t.selectionDuration} {formatTime(Math.max(0, endSeconds - startSeconds))}
             </p>
           </>
         )}
@@ -150,12 +153,12 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
           disabled={duration === null || isPreparing}
           className="w-full rounded-xl border border-indigo-200 bg-white px-5 py-3 font-bold text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPreparing ? 'Připravuji výřez…' : 'Náhled vybraného úseku'}
+          {isPreparing ? t.prepareTrim : t.previewSelection}
         </button>
         {previewUrl && (
           <div className="w-full rounded-2xl border border-indigo-100 bg-white p-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-indigo-600">Náhled výřezu</p>
-            <audio controls src={previewUrl} className="w-full h-10" aria-label="Přehrát vybraný úsek audia" />
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-indigo-600">{t.trimPreview}</p>
+            <audio controls src={previewUrl} className="w-full h-10" aria-label={t.playTrimmedAudio} />
           </div>
         )}
       </div>
@@ -173,7 +176,7 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
         className="flex w-full items-center justify-center space-x-3 rounded-2xl bg-indigo-600 py-5 text-xl font-black text-white shadow-xl shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Scissors size={22} />
-        <span>{isPreparing ? 'Připravuji výřez…' : 'Přepsat vybraný úsek'}</span>
+        <span>{isPreparing ? t.prepareTrim : t.transcribeSelection}</span>
         {!isPreparing && <ArrowRight size={22} />}
       </button>
     </div>

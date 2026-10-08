@@ -15,9 +15,15 @@ async def test_asr_adapter_mock_fallback():
 
 @pytest.mark.asyncio
 async def test_llm_adapter_mock_fallback():
-    # Test generate response
     adapter = OllamaLLMAdapter()
-    # In test environment, it should hit the exception and return mock
     result = await adapter.generate_response("Test transcript", format_type="summary")
     assert "AI Shrnutí (MOCK)" in result
     assert "Bod 1" in result
+
+
+@pytest.mark.asyncio
+async def test_llm_adapter_english_mock_fallback():
+    adapter = OllamaLLMAdapter()
+    result = await adapter.generate_response("Test transcript", format_type="summary", language="en")
+    assert "AI Summary (MOCK)" in result
+    assert "Point 1" in result

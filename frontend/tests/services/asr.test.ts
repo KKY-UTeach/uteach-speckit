@@ -18,4 +18,17 @@ describe('transcribeAudio', () => {
     const formData = fetchMock.mock.calls[0][1].body as FormData;
     expect((formData.get('file') as File).name).toBe('lecture_audio.wav');
   });
+
+  it('sends the selected language to the transcription API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ job_id: 'test', text: 'Transcript', status: 'success' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await transcribeAudio(new Blob(['audio'], { type: 'audio/webm' }), 'en');
+
+    const formData = fetchMock.mock.calls[0][1].body as FormData;
+    expect(formData.get('language')).toBe('en');
+  });
 });

@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from '../i18n';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export interface TranscriptionResponse {
@@ -6,7 +8,10 @@ export interface TranscriptionResponse {
   status: string;
 }
 
-export const transcribeAudio = async (audioBlob: Blob): Promise<TranscriptionResponse> => {
+export const transcribeAudio = async (
+  audioBlob: Blob,
+  language: SupportedLanguage = 'cs',
+): Promise<TranscriptionResponse> => {
   const formData = new FormData();
   const mimeType = audioBlob.type.split(';', 1)[0];
   const extensionByMimeType: Record<string, string> = {
@@ -19,7 +24,7 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<TranscriptionRes
   };
   const extension = extensionByMimeType[mimeType] || 'webm';
   formData.append('file', audioBlob, `lecture_audio.${extension}`);
-  formData.append('language', 'cs');
+  formData.append('language', language);
 
   const response = await fetch(`${API_BASE_URL}/asr/transcribe`, {
     method: 'POST',

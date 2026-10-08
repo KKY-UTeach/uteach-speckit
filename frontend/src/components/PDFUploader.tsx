@@ -1,31 +1,34 @@
 import React, { useRef, useState } from 'react';
 import { FileText, Upload, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { UploadedDocument } from '../hooks/usePersistence';
+import { SupportedLanguage, translations } from '../i18n';
 
 interface PDFUploaderProps {
   documents: UploadedDocument[];
   onUpload: (doc: UploadedDocument) => void;
   onRemove: (id: string) => void;
+  language: SupportedLanguage;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove }) => {
+const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove, language }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = translations[language];
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (documents.length >= 3) {
-      setError("Můžete nahrát maximálně 3 dokumenty.");
+      setError(t.fileLimitReached);
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError("Soubor je příliš velký (max 10MB).");
+      setError(t.fileTooLarge);
       return;
     }
 
@@ -43,12 +46,11 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.detail || "Chyba při extrakci textu.");
+        throw new Error(errData.detail || t.pdfUploadError);
       }
 
       const data = await response.json();
       const newDoc: UploadedDocument = {
-        // Simple crypto.randomUUID() check (falls back if needed)
         id: typeof crypto.randomUUID === 'function'
           ? crypto.randomUUID()
           : Math.random().toString(36).substring(2, 15),
@@ -61,7 +63,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
       onUpload(newDoc);
     } catch (err: unknown) {
       console.error('PDF extraction failed:', err);
-      const errorMessage = err instanceof Error ? err.message : "Nepodařilo se zpracovat dokument.";
+      const errorMessage = err instanceof Error ? err.message : t.pdfUploadError;
       setError(errorMessage);
     } finally {
       setIsUploading(false);
@@ -74,7 +76,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
           <FileText size={20} className="text-indigo-600" />
-          Podpůrné dokumenty
+          {t.pdfUploadTitle}
         </h3>
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">
           {documents.length} / 3
@@ -99,7 +101,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
             <button
               onClick={() => onRemove(doc.id)}
               className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-              title="Smazat dokument"
+              title={t.deleteDocument}
             >
               <X size={20} />
             </button>
@@ -114,7 +116,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
             <div className="p-3 bg-white shadow-sm border border-slate-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
               <Upload size={24} />
             </div>
-            <span className="font-black text-sm tracking-tight uppercase tracking-wider">Přidat PDF dokument</span>
+            <span className="font-black text-sm tracking-tight uppercase tracking-wider">{t.addPdfButton}</span>
             <input
               type="file"
               ref={fileInputRef}
@@ -128,7 +130,7 @@ const PDFUploader: React.FC<PDFUploaderProps> = ({ documents, onUpload, onRemove
         {isUploading && (
           <div className="flex flex-col items-center justify-center gap-4 p-8 bg-indigo-50/50 border border-indigo-100 border-dashed rounded-[1.5rem] text-indigo-600 font-black text-sm animate-pulse">
             <Loader2 size={32} className="animate-spin" />
-            <span className="tracking-tight uppercase tracking-wider">Zpracovávám text z PDF...</span>
+            <span className="tracking-tight uppercase tracking-wider">{t.pdfProcessing}</span>
           </div>
         )}
 

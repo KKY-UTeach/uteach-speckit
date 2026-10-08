@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from '../i18n';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export interface DocumentContext {
@@ -6,17 +8,19 @@ export interface DocumentContext {
 }
 
 export const summarizeTranscript = async (
-  transcript: string, 
+  transcript: string,
   format: string = 'summary',
-  supportingDocs?: DocumentContext[]
+  supportingDocs?: DocumentContext[],
+  language: SupportedLanguage = 'cs',
 ): Promise<{ markdown: string }> => {
   const response = await fetch(`${API_BASE_URL}/llm/summarize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      transcript, 
-      format, 
-      supporting_docs: supportingDocs 
+    body: JSON.stringify({
+      transcript,
+      format,
+      supporting_docs: supportingDocs,
+      language,
     }),
   });
 
