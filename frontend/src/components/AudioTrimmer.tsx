@@ -99,9 +99,6 @@ const AudioTrimmer: React.FC<AudioTrimmerProps> = ({ audio, onTranscribe }) => {
   return (
     <div className="flex w-full max-w-2xl flex-col items-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-3">
-        <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">
-          Volitelné
-        </div>
         <h2 className="text-4xl font-black text-slate-900 tracking-tight">Oříznout audio</h2>
         <p className="text-slate-500 font-medium">
           Nastavte začátek a konec nahrávky. Přepisovat se bude pouze vybraný úsek.
