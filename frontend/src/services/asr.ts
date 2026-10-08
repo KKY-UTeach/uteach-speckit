@@ -8,7 +8,17 @@ export interface TranscriptionResponse {
 
 export const transcribeAudio = async (audioBlob: Blob): Promise<TranscriptionResponse> => {
   const formData = new FormData();
-  formData.append('file', audioBlob, 'lecture_audio.webm');
+  const mimeType = audioBlob.type.split(';', 1)[0];
+  const extensionByMimeType: Record<string, string> = {
+    'audio/mp4': 'm4a',
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/wav': 'wav',
+    'audio/webm': 'webm',
+    'audio/x-wav': 'wav',
+  };
+  const extension = extensionByMimeType[mimeType] || 'webm';
+  formData.append('file', audioBlob, `lecture_audio.${extension}`);
   formData.append('language', 'cs');
 
   const response = await fetch(`${API_BASE_URL}/asr/transcribe`, {

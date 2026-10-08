@@ -7,10 +7,11 @@ import PDFUploader from './components/PDFUploader';
 import { transcribeAudio } from './services/asr';
 import { summarizeTranscript, exportToPdf } from './services/summary';
 import { usePersistence, SessionData, UploadedDocument } from './hooks/usePersistence';
-import { AlertCircle, Loader2, Sparkles, History, X, Cpu, FileUp, ArrowRight } from 'lucide-react';
+import { AlertCircle, Sparkles, History, X, Cpu, ArrowRight } from 'lucide-react';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [sourceAudio, setSourceAudio] = useState<Blob | null>(null);
   const [transcript, setTranscript] = useState('');
   const [summary, setSummary] = useState('');
   const [format, setFormat] = useState('summary');
@@ -39,6 +40,7 @@ function App() {
       saveSession({
         transcript,
         currentStep,
+        workflowVersion: 3,
         format,
         supportingDocs,
         lastUpdated: Date.now()
@@ -60,14 +62,20 @@ function App() {
   const restoreSession = () => {
     if (pendingSession) {
       setTranscript(pendingSession.transcript);
-      setCurrentStep(pendingSession.currentStep);
+      const restoredStep = pendingSession.workflowVersion === 2
+        ? pendingSession.currentStep <= 2
+          ? 1
+          : pendingSession.currentStep - 1
+        : Math.min(pendingSession.currentStep, 4);
+      setCurrentStep(restoredStep);
       setFormat(pendingSession.format);
       setSupportingDocs(pendingSession.supportingDocs || []);
     }
     setShowRestore(false);
   };
 
-  const handleAudioCaptured = async (blob: Blob) => {
+  const handleAudioCaptured = async (blob: Blob, originalAudio: Blob) => {
+    setSourceAudio(originalAudio);
     setIsLoading(true);
     setError(null);
     setStatusText('Nahrávání audia...');
@@ -130,6 +138,7 @@ function App() {
   const reset = async () => {
     setTranscript('');
     setSummary('');
+    setSourceAudio(null);
     setSupportingDocs([]);
     setCurrentStep(1);
     setError(null);
@@ -206,7 +215,7 @@ function App() {
             <div className="w-full flex justify-center">
               {currentStep === 1 && (
                 <div className="flex flex-col items-center space-y-12 w-full max-w-2xl">
-                  <AudioCapture onCaptured={handleAudioCaptured} />
+                  <AudioCapture initialAudio={sourceAudio} onCaptured={handleAudioCaptured} />
                   <div className="w-full border-t border-slate-100 pt-10">
                     <PDFUploader 
                       documents={supportingDocs} 
@@ -229,7 +238,7 @@ function App() {
               {currentStep === 3 && (
                 <div className="flex flex-col items-center space-y-12 w-full max-w-2xl animate-in fade-in zoom-in-95 duration-500">
                   <div className="text-center space-y-3">
-                    <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">Poslední krok</div>
+                    <div className="inline-flex px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">Nastavení souhrnu</div>
                     <h2 className="text-4xl font-black text-slate-900 tracking-tight">Nastavení výstupu</h2>
                     <p className="text-slate-500 font-medium max-w-md mx-auto">Vyberte styl zpracování, který vám nejvíce vyhovuje pro studium.</p>
                   </div>
@@ -295,7 +304,9 @@ function App() {
               className="text-slate-400 hover:text-indigo-600 font-black tracking-widest uppercase text-[10px] transition-colors flex items-center space-x-2"
             >
               <span className="text-base leading-none">←</span>
-              <span>Zpět na {currentStep === 2 ? 'Nahrávání' : currentStep === 3 ? 'Editor' : 'Nastavení'}</span>
+              <span>
+                Zpět na {currentStep === 2 ? 'Nahrávání' : currentStep === 3 ? 'Editor' : 'Nastavení'}
+              </span>
             </button>
           ) : <div />}
           

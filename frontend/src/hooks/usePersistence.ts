@@ -14,6 +14,7 @@ export interface UploadedDocument {
 export interface SessionData {
   transcript: string;
   currentStep: number;
+  workflowVersion?: number;
   format: string;
   lastUpdated: number;
   supportingDocs?: UploadedDocument[];
